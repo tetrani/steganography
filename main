@@ -1,20 +1,19 @@
-#import required libraries
-from PIL import Image, ImageTk  #for image processing and display
-import tkinter as tk  #for GUI
-from tkinter import filedialog  #for file selection dialog
+from PIL import Image, ImageTk
+import tkinter as tk
+from tkinter import filedialog
 
 class SteganographyApp:
     def __init__(self):
         """Initialize the main application window and variables"""
-        self.image_path = ""  #Path to the original image
-        self.secret_message = ""  #message to hide
-        self.original_image = None  #PIL Image object for original
-        self.modified_image = None  #PIL Image object with hidden data
+        self.image_path = ""
+        self.secret_message = ""
+        self.original_image = None
+        self.modified_image = None
         
         #create main window
         self.root = tk.Tk()
         self.root.title("Steganography Tool")
-        self.root.geometry("800x700")  #set window size
+        self.root.geometry("800x700")
         
         #set up all GUI components
         self.setup_ui()
@@ -25,7 +24,7 @@ class SteganographyApp:
         top_frame = tk.Frame(self.root)
         top_frame.pack(pady=10)
         
-        #secret message input
+        #secret message input window
         tk.Label(top_frame, text="Secret Message:").grid(row=0, column=0, padx=5, pady=5, sticky="e")
         self.message_entry = tk.Entry(top_frame, width=50)
         self.message_entry.grid(row=0, column=1, padx=5, pady=5)
@@ -34,50 +33,59 @@ class SteganographyApp:
         tk.Label(top_frame, text="Image Path:").grid(row=1, column=0, padx=5, pady=5, sticky="e")
         self.image_entry = tk.Entry(top_frame, width=50)
         self.image_entry.grid(row=1, column=1, padx=5, pady=5)
-        
-        #button to open file dialog for image selection
         browse_button = tk.Button(top_frame, text="Browse", command=self.browse_image)
         browse_button.grid(row=1, column=2, padx=5, pady=5)
         
-        #frame for action buttons
+        #frame for algorithm selection and action buttons
         button_frame = tk.Frame(self.root)
         button_frame.pack(pady=10)
+        
+        #algorithm selection radio buttons
+        self.algorithm_var = tk.StringVar(value="LSB")
+        tk.Label(button_frame, text="Algorithm:").pack(side=tk.LEFT, padx=5)
+        tk.Radiobutton(button_frame, text="LSB", variable=self.algorithm_var, value="LSB").pack(side=tk.LEFT)
+        tk.Radiobutton(button_frame, text="PVD", variable=self.algorithm_var, value="PVD").pack(side=tk.LEFT)
         
         #main action buttons (load, hide, extract)
         tk.Button(button_frame, text="Load Image", command=self.load_image).pack(side=tk.LEFT, padx=5)
         tk.Button(button_frame, text="Hide Data", command=self.hide_data).pack(side=tk.LEFT, padx=5)
         tk.Button(button_frame, text="Extract Data", command=self.extract_data).pack(side=tk.LEFT, padx=5)
         
-        #label for operation feedback
+        #status label
         self.status_label = tk.Label(self.root, text="Ready", fg="blue")
         self.status_label.pack(pady=5)
         
-        #frame for image display (original and modified)
+        #frame for image display
         images_frame = tk.Frame(self.root)
         images_frame.pack(pady=10)
         
-        #original image display components
+        #original image display
         self.original_label = tk.Label(images_frame, text="Original Image")
         self.original_label.grid(row=0, column=0, padx=10)
-        self.original_image_label = tk.Label(images_frame)  #will hold the image
+        self.original_image_label = tk.Label(images_frame)
         self.original_image_label.grid(row=1, column=0, padx=10)
         
-        #modified image display components
+        #modified image display
         self.modified_label = tk.Label(images_frame, text="Modified Image")
         self.modified_label.grid(row=0, column=1, padx=10)
-        self.modified_image_label = tk.Label(images_frame)  #will hold the image
+        self.modified_image_label = tk.Label(images_frame)
         self.modified_image_label.grid(row=1, column=1, padx=10)
         
         #output label for extracted messages
         self.output_label = tk.Label(self.root, text="", wraplength=700)
         self.output_label.pack(pady=10)
+
+        #performance eval label
+        self.mse_label = tk.Label(self.root, text="", fg="blue", anchor="e")
+        
+
     
     def browse_image(self):
         """Open file dialog to select a BMP image"""
         file_path = filedialog.askopenfilename(filetypes=[("BMP files", "*.bmp")])
         if file_path:
-            self.image_entry.delete(0, tk.END)  #clear current entry
-            self.image_entry.insert(0, file_path)  #add new path
+            self.image_entry.delete(0, tk.END)
+            self.image_entry.insert(0, file_path)
     
     def load_image(self):
         """Load the selected image and display it"""
@@ -87,31 +95,32 @@ class SteganographyApp:
             return
             
         try:
-            #open the image file
             self.original_image = Image.open(self.image_path)
             
-            #create a display version (resize if too large)
+            #create display version
             if self.original_image.width > 300 or self.original_image.height > 300:
                 display_image = self.original_image.copy()
-                display_image.thumbnail((300, 300))  #maintain aspect ratio
+                display_image.thumbnail((300, 300))
                 img = ImageTk.PhotoImage(display_image)
             else:
                 img = ImageTk.PhotoImage(self.original_image)
             
-            #update the display
             self.original_image_label.config(image=img)
-            self.original_image_label.image = img  #keep reference to prevent garbage collection
+            self.original_image_label.image = img
             
-            #clear any previous modified image
+            #clear previous modified image
             self.modified_image_label.config(image='')
             self.modified_image_label.image = None
+            #hide the MSE label again
+            self.mse_label.pack_forget()
+
             
             self.status_label.config(text=f"Image loaded: {self.image_path}", fg="green")
         except Exception as e:
             self.status_label.config(text=f"Error loading image: {str(e)}", fg="red")
     
     def hide_data(self):
-        """Hide the secret message in the image using LSB steganography"""
+        """Hide the secret message using selected algorithm"""
         if not hasattr(self, 'original_image') or not self.original_image:
             self.status_label.config(text="Please load an image first", fg="red")
             return
@@ -121,84 +130,260 @@ class SteganographyApp:
             self.status_label.config(text="Please enter a message", fg="red")
             return
             
+        algorithm = self.algorithm_var.get()
+        
         try:
-            #convert text to binary string (8 bits per character)
-            binary_text = ''.join(format(ord(char), '08b') for char in self.secret_message)
-            binary_text += "00000000"  #add null terminator to mark end
-            
-            #get all pixel values from image
-            pixels = list(self.original_image.getdata())
-            
-            #verify message fits in image
-            if len(binary_text) > len(pixels):
-                self.status_label.config(text="Message too long for image", fg="red")
-                return
-            
-            #modify each pixel's LSB to store message bits
-            new_pixels = []
-            for i, pixel in enumerate(pixels):
-                if i < len(binary_text):
-                    #clear LSB (bitwise AND with 11111110) then set to message bit
-                    new_pixel = (pixel & 0b11111110) | int(binary_text[i])
-                    new_pixels.append(new_pixel)
-                else:
-                    new_pixels.append(pixel)  #leave remaining pixels unchanged
-            
-            #create new image with modified pixels
-            self.modified_image = Image.new("L", self.original_image.size)
-            self.modified_image.putdata(new_pixels)
-            output_file = "hidden_data.bmp"
-            self.modified_image.save(output_file)
-            
-            #display the modified image
-            if self.modified_image.width > 300 or self.modified_image.height > 300:
-                display_image = self.modified_image.copy()
-                display_image.thumbnail((300, 300))
-                img = ImageTk.PhotoImage(display_image)
-            else:
-                img = ImageTk.PhotoImage(self.modified_image)
-            
-            self.modified_image_label.config(image=img)
-            self.modified_image_label.image = img  #keep reference
-            
-            self.status_label.config(text=f"Data hidden successfully in {output_file}", fg="green")
+            if algorithm == "LSB":
+                self._hide_data_lsb()
+            elif algorithm == "PVD":
+                self._hide_data_pvd()
+                
         except Exception as e:
             self.status_label.config(text=f"Error: {str(e)}", fg="red")
     
+    def _hide_data_lsb(self):
+        """Hide data using LSB algorithm"""
+        #convert message to binary with null terminator
+        binary_text = ''.join(format(ord(char), '08b') for char in self.secret_message)
+        binary_text += "00000000"  #null terminator
+        
+        pixels = list(self.original_image.getdata())
+        
+        if len(binary_text) > len(pixels):
+            self.status_label.config(text="Message too long for image", fg="red")
+            return
+        
+        #modify LSB of each pixel
+        new_pixels = []
+        for i, pixel in enumerate(pixels):
+            if i < len(binary_text):
+                new_pixel = (pixel & 0b11111110) | int(binary_text[i])
+                new_pixels.append(new_pixel)
+            else:
+                new_pixels.append(pixel)
+        
+        #create and save new image
+        self.modified_image = Image.new("L", self.original_image.size)
+        self.modified_image.putdata(new_pixels)
+        output_file = "hidden_data_lsb.bmp"
+        self.modified_image.save(output_file)
+        
+        self._display_modified_image()
+        self.status_label.config(text=f"Data hidden with LSB in {output_file}", fg="green")
+        evaluator = PerformanceEvaluator()
+        print("First few original pixels:", list(self.original_image.getdata())[:10])
+        print("First few modified pixels:", list(self.modified_image.getdata())[:10])
+
+        mse = evaluator.calculate_mse(self.original_image, self.modified_image)
+        self.mse_label.config(text=f"MSE: {mse:.6f}")
+
+        if not self.mse_label.winfo_ismapped():
+            self.mse_label.pack(side=tk.BOTTOM, anchor="e", padx=10, pady=5)
+
+    
+    def _hide_data_pvd(self):
+        """Hide data using PVD algorithm"""
+        #convert message to binary with null terminator
+        binary_text = ''.join(format(ord(char), '08b') for char in self.secret_message)
+        binary_text += "00000000"  #null terminator
+        
+        pixels = list(self.original_image.getdata())
+        width, height = self.original_image.size
+        
+        #check if message fits
+        max_bits = (width * height // 2) * 4  #max of 4 bits per pair
+        if len(binary_text) > max_bits:
+            self.status_label.config(text="Message too long for image with PVD", fg="red")
+            return
+        
+        new_pixels = list(pixels)
+        data_index = 0
+        
+        for i in range(0, len(pixels) - 1, 2):
+            if data_index >= len(binary_text):
+                break
+                
+            p1, p2 = pixels[i], pixels[i+1]
+            original_diff = abs(p1 - p2)
+            
+            #determine how many bits we can hide
+            if original_diff < 8:
+                bits_to_hide = 2
+                lower_bound = 0
+            elif original_diff < 16:
+                bits_to_hide = 3
+                lower_bound = 8
+            else:
+                bits_to_hide = 4
+                lower_bound = 16
+            
+            #stop if not enough bits left to embed
+            if data_index + bits_to_hide > len(binary_text):
+                break
+            
+            bits = binary_text[data_index:data_index + bits_to_hide]
+            data_index += bits_to_hide
+            decimal_value = int(bits, 2)
+            new_diff = lower_bound + decimal_value
+            
+            #adjust pixels
+            avg = (p1 + p2) // 2
+            if p1 >= p2:
+                new_p1 = avg + (new_diff // 2)
+                new_p2 = avg - (new_diff // 2)
+            else:
+                new_p1 = avg - (new_diff // 2)
+                new_p2 = avg + (new_diff // 2)
+            
+            #constrain pixel values
+            new_p1 = max(0, min(255, new_p1))
+            new_p2 = max(0, min(255, new_p2))
+            
+            #if needed, adjust to maintain intended difference
+            actual_diff = abs(new_p1 - new_p2)
+            if actual_diff != new_diff:
+                if p1 >= p2:
+                    new_p2 = new_p1 - new_diff
+                else:
+                    new_p2 = new_p1 + new_diff
+                new_p2 = max(0, min(255, new_p2))
+            
+            new_pixels[i] = new_p1
+            new_pixels[i + 1] = new_p2
+        
+        self.modified_image = Image.new("L", self.original_image.size)
+        self.modified_image.putdata(new_pixels)
+        output_file = "hidden_data_pvd.bmp"
+        self.modified_image.save(output_file)
+        
+        self._display_modified_image()
+        self.status_label.config(text=f"Data hidden with PVD in {output_file}", fg="green")
+        evaluator = PerformanceEvaluator()
+        mse = evaluator.calculate_mse(self.original_image, self.modified_image)
+        self.mse_label.config(text=f"MSE: {mse:.6f}")
+
+        if not self.mse_label.winfo_ismapped():
+            self.mse_label.pack(side=tk.BOTTOM, anchor="e", padx=10, pady=5)
+
+    
+    def _display_modified_image(self):
+        """Display the modified image"""
+        if self.modified_image.width > 300 or self.modified_image.height > 300:
+            display_image = self.modified_image.copy()
+            display_image.thumbnail((300, 300))
+            img = ImageTk.PhotoImage(display_image)
+        else:
+            img = ImageTk.PhotoImage(self.modified_image)
+        
+        self.modified_image_label.config(image=img)
+        self.modified_image_label.image = img
+    
     def extract_data(self):
-        """Extract hidden message from the modified image"""
+        """Extract hidden message using selected algorithm"""
         if not hasattr(self, 'modified_image') or not self.modified_image:
             self.status_label.config(text="Please hide data first", fg="red")
             return
             
+        algorithm = self.algorithm_var.get()
+        
         try:
-            #get all pixel values from modified image
-            pixels = list(self.modified_image.getdata())
+            if algorithm == "LSB":
+                recovered_text = self._extract_data_lsb()
+            elif algorithm == "PVD":
+                recovered_text = self._extract_data_pvd()
             
-            #extract LSB from each pixel
-            binary_text = ''.join(str(pixel & 0b00000001) for pixel in pixels)
-            
-            #split binary string into 8-bit chunks (bytes)
-            chars = [binary_text[i:i+8] for i in range(0, len(binary_text), 8)]
-            
-            #reconstruct message until null terminator
-            recovered_text = ''
-            for char in chars:
-                if char == '00000000':  #stop at null terminator
-                    break
-                recovered_text += chr(int(char, 2))  #convert binary t o character
-            
-            #display extracted message
             self.output_label.config(text=f"Recovered Text: {recovered_text}")
-            self.status_label.config(text="Data extracted successfully", fg="green")
+            self.status_label.config(text=f"Data extracted with {algorithm} successfully", fg="green")
         except Exception as e:
             self.status_label.config(text=f"Error: {str(e)}", fg="red")
+    
+    def _extract_data_lsb(self):
+        """Extract data using LSB algorithm"""
+        pixels = list(self.modified_image.getdata())
+        evaluator = PerformanceEvaluator()
+        mse = evaluator.calculate_mse(self.original_image, self.modified_image)
+        self.mse_label.config(text=f"MSE: {mse:.2f}")
+
+        
+        #extract LSB from each pixel
+        binary_text = ''.join(str(pixel & 0b00000001) for pixel in pixels)
+        
+        #convert to bytes and find null terminator
+        recovered_text = ''
+        for i in range(0, len(binary_text), 8):
+            byte = binary_text[i:i+8]
+            if len(byte) < 8:
+                break
+            char = chr(int(byte, 2))
+            if char == '\0':
+                break
+            recovered_text += char
+        
+        return recovered_text
+    
+    def _extract_data_pvd(self):
+        """Extract data using PVD algorithm"""
+        pixels = list(self.modified_image.getdata())
+        binary_text = ""
+        recovered_text = ""
+
+        for i in range(0, len(pixels) - 1, 2):
+            p1, p2 = pixels[i], pixels[i+1]
+            difference = abs(p1 - p2)
+
+            #determine how many bits were likely hidden
+            if difference < 8:
+                bits_to_extract = 2
+                lower_bound = 0
+            elif difference < 16:
+                bits_to_extract = 3
+                lower_bound = 8
+            elif difference < 32:
+                bits_to_extract = 4
+                lower_bound = 16
+            else:
+                continue  #difference too large to have embedded message bits
+
+            hidden_value = difference - lower_bound
+
+            if hidden_value < 0 or hidden_value >= (1 << bits_to_extract):
+                continue  #skip invalid or corrupted pixel pair
+
+            bits = format(hidden_value, f'0{bits_to_extract}b')
+            binary_text += bits
+
+            while len(binary_text) >= 8:
+                byte = binary_text[:8]
+                binary_text = binary_text[8:]
+
+                char = chr(int(byte, 2))
+                if char == '\0':
+                    return recovered_text
+                recovered_text += char
+
+        return recovered_text
     
     def run(self):
         """Start the application"""
         self.root.mainloop()
 
-#entry point - create and run the application
+class PerformanceEvaluator:
+    def calculate_mse(self, original_image, modified_image):
+        """Calculate the Mean Squared Error (MSE) between two grayscale images"""
+        original_pixels = list(original_image.getdata())
+        modified_pixels = list(modified_image.getdata())
+
+        if len(original_pixels) != len(modified_pixels):
+            raise ValueError("Images must be the same size for MSE calculation.")
+
+        error = 0
+        for orig, mod in zip(original_pixels, modified_pixels):
+            error += (orig - mod) ** 2
+
+        mse = error / len(original_pixels)
+        return mse
+        
+
 if __name__ == "__main__":
     app = SteganographyApp()
     app.run()
