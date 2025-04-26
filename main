@@ -1,7 +1,10 @@
 #! /usr/bin/env python3
 
 """
-Program name and/or Documentation
+Steganography Tool using LSB and PVD Algorithms
+This program hides and extracts secret messages in images using the Least Significant Bit (LSB) and Pixel Value Difference (PVD) algorithms.
+
+https://github.com/tetrani/steganography
 """
 # ============================================ #
 # //             Module imports             // #
