@@ -13,3 +13,7 @@ Enhancements:
 Enhancements:
 - Added Pixel Value Differencing algorithm definitions to Steganography class.
 - Added placeholder for MSE calculations
+
+1.2 (2025-04-26, 22:25)
+Enhancements:
+- Modified and moved previous definitions into necessary classes (ImageHandler, DataHider, DataExtractor, UserInterface, PerformanceEvaluator)
