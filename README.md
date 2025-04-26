@@ -42,6 +42,8 @@ Once everything is installed, run the program by executing the following command
 
 python main.py
 
+Or run directly from IDE.
+
 # Usage
 After launching the application, the main GUI will appear with the following options:
 ## Load an Image
